@@ -62,8 +62,9 @@ def obter_contadores():
     if df is None:
         return jsonify({"erro": f"Erro interno no banco de dados: {load_error}"}), 500
     
-    # Filtra apenas os chips disponíveis (UC e Motivo vazios)
     df_disponiveis = df[(df['UC'] == '') & (df['MOTIVO_DEVOLUCAO'] == '')]
+
+    total_indisponiveis = len(df[(df['UC'] != '') | (df['MOTIVO_DEVOLUCAO'] != '')])
     
     contagem_bruta = df_disponiveis['OPERADORA'].str.upper().value_counts().to_dict()
     
@@ -71,10 +72,29 @@ def obter_contadores():
         "vivo": contagem_bruta.get("VIVO", 0),
         "claro": contagem_bruta.get("CLARO", 0),
         "tim": contagem_bruta.get("TIM", 0),
-        "algar": contagem_bruta.get("ALGAR", 0)
+        "algar": contagem_bruta.get("ALGAR", 0),
+        "indisponiveis": total_indisponiveis 
     }
     
     return jsonify(resultado), 200
+
+# ==========================================
+# ROTA 3: Listar todos os chips (para a tabela)
+# ==========================================
+@app.route('/api/todos', methods=['GET'])
+def listar_todos():
+    if df is None:
+        return jsonify({"erro": f"Erro interno no banco de dados: {load_error}"}), 500
+
+    df_view = df[['SSN', 'OPERADORA', 'UC', 'MOTIVO_DEVOLUCAO']].copy()
+
+    df_view['disponivel'] = (df_view['UC'] == '') & (df_view['MOTIVO_DEVOLUCAO'] == '')
+    
+    # Retorna os primeiros 100 resultados para não travar o front
+    limite = request.args.get('limite', default=100, type=int)
+    registros = df_view.head(limite).to_dict(orient='records')
+    
+    return jsonify(registros), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
