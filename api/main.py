@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import pandas as pd
 import os
+import io 
 
 app = Flask(__name__)
 CORS(app)
@@ -152,8 +153,8 @@ def adicionar():
     if not ssn or not operadora:
         return jsonify({"erro": "SSN e Operadora são obrigatórios."}), 400
 
-    if ssn in df['SSN'].values:
-        return jsonify({"erro": "Este SSN já está cadastrado no sistema."}), 409
+    if (df['SSN'] == ssn).any():
+        return jsonify({"erro": f"O chip com SSN {ssn} já está cadastrado no sistema!"}), 409
 
     nova_linha = pd.DataFrame([{
         'SSN': ssn, 'OPERADORA': operadora, 
@@ -164,6 +165,95 @@ def adicionar():
     salvar_csv()
 
     return jsonify({"mensagem": "Novo chip cadastrado com sucesso!"}), 201
+
+# ==========================================
+# ROTAS DE ADMINISTRADORES
+# ==========================================
+
+# ==========================================
+# ROTA 1: Atualizar Chips
+# ==========================================
+@app.route('/api/admin/atualizar', methods=['POST'])
+def admin_atualizar():
+    if df is None: return jsonify({"erro": "Banco de dados indisponível"}), 500
+    
+    dados = request.json
+    ssn_original = dados.get('ssn_original', '').strip()
+    novo_ssn = dados.get('ssn', '').strip()
+    operadora = dados.get('operadora', '').strip().upper()
+    uc = dados.get('uc', '').strip()
+    motivo = dados.get('motivo_devolucao', '').strip()
+
+    if not ssn_original: return jsonify({"erro": "SSN original é obrigatório"}), 400
+
+    indices = df.index[df['SSN'] == ssn_original].tolist()
+    if not indices: return jsonify({"erro": "SSN não encontrado"}), 404
+    
+    idx = indices[0]
+
+    if novo_ssn: df.at[idx, 'SSN'] = novo_ssn
+    if operadora: df.at[idx, 'OPERADORA'] = operadora
+    df.at[idx, 'UC'] = uc
+    df.at[idx, 'MOTIVO_DEVOLUCAO'] = motivo
+    
+    salvar_csv()
+    return jsonify({"mensagem": "Informações atualizadas com sucesso!"}), 200
+
+# ==========================================
+# ROTA 2: Upload Massivo via CSV
+# ==========================================
+@app.route('/api/admin/upload_csv', methods=['POST'])
+def admin_upload_csv():
+    global df
+    if 'file' not in request.files:
+        return jsonify({"erro": "Nenhum arquivo enviado"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"erro": "Nenhum arquivo selecionado"}), 400
+        
+    if not file.filename.endswith('.csv'):
+        return jsonify({"erro": "O arquivo deve ser um CSV"}), 400
+
+    try:
+        # usa 'utf-8-sig' para ignorar o caractere invisível (BOM) do Excel/Bloco de Notas
+        conteudo_arquivo = file.stream.read().decode("utf-8-sig")
+        stream = io.StringIO(conteudo_arquivo, newline=None)
+        
+        df_novo = pd.read_csv(stream, sep=';', dtype=str)
+
+        df_novo.columns = df_novo.columns.str.strip()
+        
+        df_novo.fillna('', inplace=True)
+        
+        # Valida se as colunas obrigatórias existem no CSV enviado
+        colunas_esperadas = ['SSN', 'OPERADORA', 'UC', 'MOTIVO_DEVOLUCAO']
+        for col in colunas_esperadas:
+            if col not in df_novo.columns:
+                return jsonify({"erro": f"O CSV enviado está sem a coluna obrigatória: {col}"}), 400
+        
+        df_novo['SSN'] = df_novo['SSN'].str.strip()
+        df_novo['OPERADORA'] = df_novo['OPERADORA'].str.upper()
+        
+        # Filtra apenas os SSNs que ainda NÃO existem no banco de dados para evitar duplicação
+        ssns_existentes = df['SSN'].values
+        df_inserir = df_novo[~df_novo['SSN'].isin(ssns_existentes)][colunas_esperadas]
+        
+        qtd_inserida = len(df_inserir)
+        qtd_ignorada = len(df_novo) - qtd_inserida
+        
+        if qtd_inserida == 0:
+            return jsonify({"mensagem": f"Nenhum chip novo inserido. Todos os {qtd_ignorada} chips já existiam no sistema."}), 200
+
+        df = pd.concat([df, df_inserir], ignore_index=True)
+        salvar_csv()
+        
+        return jsonify({
+            "mensagem": f"Operação realizada com sucesso! {qtd_inserida} chips adicionados ({qtd_ignorada} já existem na base de dados)."
+        }), 200
+
+    except Exception as e:
+        return jsonify({"erro": f"Erro ao processar arquivo: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
