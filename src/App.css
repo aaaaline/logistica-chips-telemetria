@@ -9,6 +9,8 @@
   --verde-sucesso: #2ecc71;
   --borda-suave: #e0e6ed;
   --branco: #ffffff;
+  --amarelo-claro: #fffbdb;
+  --amarelo-alerta: #d3be02;
 }
 
 * {
@@ -138,10 +140,46 @@ h3 {
 }
 
 /* ================================
-   DETALHES DO RESULTADO
+   DETALHES DO RESULTADO E EDIÇÃO
    ================================ */
 .details-card {
   border-left: 5px solid var(--azul-principal);
+}
+
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.card-header-flex h3 {
+  margin-bottom: 0;
+}
+
+.btn-editar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--azul-principal);
+  color: var(--branco);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-editar:hover {
+  background-color: var(--azul-escuro);
+}
+
+.icon-editar {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
 }
 
 .details-grid {
@@ -150,8 +188,15 @@ h3 {
   gap: 20px;
 }
 
-.detail-item {
-  min-width: 0; 
+.detail-item.full-width {
+  grid-column: 1 / -1; 
+  border-bottom: 1px dashed var(--borda-suave);
+  padding-bottom: 15px;
+}
+
+.ssn-destaque {
+  font-size: 1.25rem !important; 
+  color: var(--texto-principal);
 }
 
 .detail-item span {
@@ -183,11 +228,43 @@ h3 {
   color: var(--vermelho-alerta);
 }
 
+.badge.reaproveitado {
+  background-color: var(--amarelo-claro);
+  color: var(--amarelo-alerta);
+}
+
 /* ================================
-   TABELA
+   TABELA E FILTROS
    ================================ */
+.table-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.table-header-flex h3 {
+  margin-bottom: 0; 
+}
+
+.status-filter {
+  padding: 8px 12px;
+  border: 1px solid var(--borda-suave);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--texto-principal);
+  background-color: var(--branco);
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+
+.status-filter:focus {
+  border-color: var(--azul-principal);
+}
+
 .table-responsive {
-  max-height: 600px; 
+  max-height: 585px; 
   overflow-y: auto; 
   overflow-x: auto;  
 }
@@ -264,7 +341,111 @@ tbody tr:hover {
   color: var(--azul-principal);
 }
 
-/* Responsivo para celular */
+.indisponiveis-box {
+  background-color: #fceceb;
+  border: 1px solid #fadbd8;
+  padding: 25px 15px; 
+}
+
+.indisponiveis-box .counter-label,
+.indisponiveis-box .counter-value {
+  color: var(--vermelho-alerta);
+}
+
+.reaproveitados-box {
+  background-color: var(--amarelo-claro);
+  border: 1px solid #faf094;
+  padding: 25px 15px; 
+}
+
+.reaproveitados-box .counter-label,
+.reaproveitados-box .counter-value {
+  color: var(--amarelo-alerta);
+}
+
+/* ================================
+   MODAIS (JANELAS POP-UP)
+   ================================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--branco);
+  padding: 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--borda-suave);
+  padding-bottom: 10px;
+  color: var(--azul-escuro);
+}
+
+.form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--texto-secundario);
+  margin-bottom: 5px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.btn-cancelar {
+  background-color: transparent;
+  color: var(--texto-secundario);
+  border: 1px solid var(--borda-suave);
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-cancelar:hover {
+  background-color: #f1f1f1;
+}
+
+.btn-salvar {
+  background-color: var(--verde-sucesso);
+  color: var(--branco);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-salvar:hover {
+  background-color: #27ae60;
+}
+
+/* ================================
+   RESPONSIVIDADE (CELULARES E TABLETS)
+   ================================ */
 @media (max-width: 860px) {
   .main-layout {
     flex-direction: column;
@@ -293,75 +474,4 @@ tbody tr:hover {
   .counters-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-}
-
-/* ================================
-   CAIXA DE INDISPONÍVEIS
-   ================================ */
-.indisponiveis-box {
-  background-color: #fceceb;
-  border: 1px solid #fadbd8;
-  padding: 25px 15px; 
-}
-
-.indisponiveis-box .counter-label,
-.indisponiveis-box .counter-value {
-  color: var(--vermelho-alerta);
-}
-
-/* ================================
-   FILTRO DA TABELA
-   ================================ */
-.table-header-flex {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.table-header-flex h3 {
-  margin-bottom: 0; 
-}
-
-.status-filter {
-  padding: 8px 12px;
-  border: 1px solid var(--borda-suave);
-  border-radius: 6px;
-  font-size: 0.9rem;
-  color: var(--texto-principal);
-  background-color: var(--branco);
-  cursor: pointer;
-  outline: none;
-  font-family: inherit;
-}
-
-.status-filter:focus {
-  border-color: var(--azul-principal);
-}
-
-/* ================================
-   BOTÕES (NOVO CHIP E ATUALIZAR INFORMAÇÕES)
-   ================================ */
-.action-buttons-container {
-  display: flex;
-  flex-direction: row; 
-  gap: 15px; 
-  margin-bottom: 5px; 
-}
-
-.btn-primary {
-  background-color: var(--azul-principal);
-  color: var(--branco);
-  border: none;
-  padding: 14px 10px; 
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  flex: 1;
-}
-
-.btn-primary:hover {
-  background-color: var(--azul-escuro);
 }

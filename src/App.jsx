@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react';
 import './App.css';
+import editIcon from './assets/edit_square_icon.png';
 
 function App() {
-  const [counters, setCounters] = useState({ vivo: 0, claro: 0, tim: 0, algar: 0, indisponiveis: 0 });
+  const [counters, setCounters] = useState({ vivo: 0, claro: 0, tim: 0, algar: 0, indisponiveis: 0, reaproveitados: 0 });
   const [allChips, setAllChips] = useState([]); 
-  const [ssnInput, setSsnInput] = useState('');
   const [searchResult, setSearchResult] = useState(null);
+
+  const [ssnInput, setSsnInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
 
-  useEffect(() => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ ssn: '', operadora: 'VIVO', uc: '', motivo: '' });
+
+  const loadData = () => {
     fetch('http://localhost:5000/api/contagem')
       .then(res => res.json())
       .then(data => setCounters(data))
@@ -20,6 +26,10 @@ function App() {
       .then(res => res.json())
       .then(data => setAllChips(data))
       .catch(err => console.error("Erro ao buscar lista de chips:", err));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const handleSearch = async () => {
@@ -37,21 +47,94 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.erro || 'Erro ao buscar o SSN.');
+        if (response.status === 404) {
+          setIsAddModalOpen(true);
+          setError('SSN não cadastrado. Preencha o formulário para adicioná-lo.');
+        } else {
+          setError(data.erro || 'Erro ao buscar o SSN.');
+        }
       } else {
         setSearchResult(data);
       }
     } catch (err) {
-      setError('Erro de conexão com o servidor. Verifique se o backend está rodando.');
+      setError('Erro de conexão com o servidor.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const closeModals = () => {
+    setIsAddModalOpen(false);
+    setIsUpdateModalOpen(false);
+    setFormData({ ssn: '', operadora: 'VIVO', uc: '', motivo: '' });
+  };
+
+  const handleAddChip = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:5000/api/adicionar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ssn: formData.ssn,
+          operadora: formData.operadora,
+          uc: formData.uc,
+          motivo_devolucao: formData.motivo
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.erro);
+      
+      closeModals();
+      loadData(); 
+      setSsnInput('');
+      setError('');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleUpdateChip = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:5000/api/atualizar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ssn: formData.ssn,
+          uc: formData.uc,
+          motivo_devolucao: formData.motivo
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.erro);
+      
+      closeModals();
+      loadData(); 
+      setSearchResult(null);
+      setSsnInput('');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // Botão de Editar do Card
+  const abrirModalEdicao = () => {
+    setFormData(prev => ({ ...prev, ssn: searchResult.ssn }));
+    setIsUpdateModalOpen(true);
+  };
+
+  // Filtro da Tabela
   const filteredChips = allChips.filter((chip) => {
     if (statusFilter === 'todos') return true;
-    if (statusFilter === 'disponivel') return chip.disponivel === true;
-    if (statusFilter === 'indisponivel') return chip.disponivel === false;
+    if (statusFilter === 'disponivel') return chip.status === 'Disponível';
+    if (statusFilter === 'indisponivel') return chip.status === 'Indisponível';
+    if (statusFilter === 'reaproveitado') return chip.status === 'Reaproveitado';
     return true;
   });
 
@@ -65,12 +148,11 @@ function App() {
             <h2>Buscar SSN</h2>
             <div className="search-box">
               <div className="input-group">
-                <label>Número do SSN</label>
                 <div className="search-controls">
                   <input 
                     type="text" 
                     className="input-text" 
-                    placeholder="Digite o SSN para buscar"
+                    placeholder="Informe o número do SSN ou os últimos 8 dígitos"
                     value={ssnInput}
                     onChange={(e) => setSsnInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -90,8 +172,24 @@ function App() {
 
           {searchResult && (
             <div className="card details-card">
-              <h3>Detalhes da busca:</h3>
+              <div className="card-header-flex">
+                <h3>Detalhes da Busca:</h3>
+
+                {!searchResult.bloqueado && (
+                  <button className="btn-editar" onClick={abrirModalEdicao}>
+                    <img src={editIcon} alt="Editar" className="icon-editar" />
+                    Editar
+                  </button>
+                )}
+              </div>
+
               <div className="details-grid">
+
+                <div className="detail-item full-width">
+                  <label>SSN Encontrado:</label>
+                  <span className="ssn-destaque">{searchResult.ssn}</span>
+                </div>
+
                 <div className="detail-item">
                   <label>Protocolo/UC:</label>
                   <span>{searchResult.uc || 'Nenhum'}</span>
@@ -102,10 +200,11 @@ function App() {
                 </div>
                 <div className="detail-item">
                   <label>Status:</label>
-                  <span className={searchResult.disponivel ? 'badge disponivel' : 'badge indisponivel'}>
-                    {searchResult.disponivel ? 'Disponível' : 'Em Uso / Indisponível'}
+                  <span className={`badge ${searchResult.status === 'Disponível' ? 'disponivel' : searchResult.status === 'Reaproveitado' ? 'reaproveitado' : 'indisponivel'}`}>
+                    {searchResult.status} {searchResult.bloqueado}
                   </span>
                 </div>
+                
               </div>
             </div>
           )}
@@ -122,6 +221,7 @@ function App() {
                 <option value="todos">Todos</option>
                 <option value="disponivel">Disponíveis</option>
                 <option value="indisponivel">Indisponíveis</option>
+                <option value="reaproveitado">Reaproveitados</option>
               </select>
             </div>
 
@@ -140,7 +240,7 @@ function App() {
                       <tr key={index}>
                         <td>{chip.SSN}</td>
                         <td>{chip.OPERADORA}</td>
-                        <td>{chip.disponivel ? 'Disponível' : 'Indisponível'}</td>
+                        <td>{chip.status}</td>
                       </tr>
                     ))
                   ) : (
@@ -159,17 +259,6 @@ function App() {
         {/* COLUNA DIREITA */}
         <div className="right-column">
           
-          {/* Botões para adicionar novo chip e informar indisponibilidade do chip */}
-          <div className="action-buttons-container">
-            <button className="btn-primary">
-              Novo Chip
-            </button>
-            <button className="btn-primary">
-              Informar Indisponibilidade
-            </button>
-          </div>
-
-          {/* Card 1: CHIPS DISPONÍVEIS */}
           <div className="card counters-card">
             <h2>Disponíveis</h2>
             <p className="alerta-texto">
@@ -196,21 +285,92 @@ function App() {
             </div>
           </div>
 
-          {/* Card 1: CHIPS INDISPONÍVEIS */}
+          <div className="card reinstalled-card">
+            <h2>Reaproveitados</h2>
+            <div className="counter-box reaproveitados-box">
+              <span className="counter-label">Total Reaproveitados</span>
+              <div className="counter-value">{counters.reaproveitados || 0}</div>
+            </div>
+          </div>
+
           <div className="card unavailable-card">
             <h2>Indisponíveis</h2>
-            <p className="alerta-texto">
-              Chips com UC ou motivo de devolução preenchidos.
-            </p>
-            
             <div className="counter-box indisponiveis-box">
               <span className="counter-label">Total Indisponíveis</span>
               <div className="counter-value">{counters.indisponiveis}</div>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
+
+      {/* Modal: CADASTRAR NOVO CHIP */}
+      {isAddModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Cadastrar Novo Chip</h3>
+            <form onSubmit={handleAddChip}>
+              <div className="form-group">
+                <label>SSN do Chip *</label>
+                <input type="text" name="ssn" required value={formData.ssn} onChange={handleInputChange} className="input-text" />
+              </div>
+              <div className="form-group">
+                <label>Operadora *</label>
+                <select name="operadora" value={formData.operadora} onChange={handleInputChange} className="input-text">
+                  <option value="VIVO">VIVO</option>
+                  <option value="CLARO">CLARO</option>
+                  <option value="TIM">TIM</option>
+                  <option value="ALGAR">ALGAR</option>
+                </select>
+              </div>
+              <p className="alerta-texto" style={{marginBottom: "10px"}}>
+                Preencha uma das opções abaixo caso o chip já não esteja disponível:
+              </p>
+              <div className="form-group">
+                <label>Protocolo/UC (Reaproveitado)</label>
+                <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" placeholder="Se foi instalado..." />
+              </div>
+              <div className="form-group">
+                <label>Motivo da Devolução (Indisponível)</label>
+                <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" placeholder="Se deu defeito..." />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-cancelar" onClick={closeModals}>Cancelar</button>
+                <button type="submit" className="btn-salvar">Salvar Cadastro</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: ATUALIZAR STATUS DO CHIP */}
+      {isUpdateModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Informar Indisponibilidade (Atualizar)</h3>
+            <p className="alerta-texto">O chip será bloqueado para novas alterações após salvar.</p>
+            <form onSubmit={handleUpdateChip}>
+              <div className="form-group">
+                <label>SSN do Chip</label>
+                <input type="text" name="ssn" disabled value={formData.ssn} className="input-text" style={{backgroundColor: '#f1f1f1'}} />
+              </div>
+              <div className="form-group">
+                <label>Protocolo/UC (Para Reaproveitado)</label>
+                <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" />
+              </div>
+              <div className="form-group">
+                <label>Motivo da Devolução (Para Indisponível)</label>
+                <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-cancelar" onClick={closeModals}>Cancelar</button>
+                <button type="submit" className="btn-salvar">Atualizar Status</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
