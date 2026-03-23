@@ -173,7 +173,7 @@ function App() {
           {searchResult && (
             <div className="card details-card">
               <div className="card-header-flex">
-                <h3>Detalhes da Busca:</h3>
+                <h3>SSN Encontrado:</h3>
 
                 {!searchResult.bloqueado && (
                   <button className="btn-editar" onClick={abrirModalEdicao}>
@@ -186,7 +186,6 @@ function App() {
               <div className="details-grid">
 
                 <div className="detail-item full-width">
-                  <label>SSN Encontrado:</label>
                   <span className="ssn-destaque">{searchResult.ssn}</span>
                 </div>
 
@@ -304,11 +303,11 @@ function App() {
         </div>
       </div>
 
-      {/* Modal: CADASTRAR NOVO CHIP */}
+      {/* Modal: CADASTRAR CHIP */}
       {isAddModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Cadastrar Novo Chip</h3>
+            <h3>Adicionar Novo Chip</h3>
             <form onSubmit={handleAddChip}>
               <div className="form-group">
                 <label>SSN do Chip *</label>
@@ -328,11 +327,11 @@ function App() {
               </p>
               <div className="form-group">
                 <label>Protocolo/UC (Reaproveitado)</label>
-                <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" placeholder="Se foi instalado..." />
+                <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" placeholder="Se foi instalado novamente" />
               </div>
               <div className="form-group">
                 <label>Motivo da Devolução (Indisponível)</label>
-                <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" placeholder="Se deu defeito..." />
+                <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" placeholder="Se foi descartado" />
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancelar" onClick={closeModals}>Cancelar</button>
@@ -355,12 +354,12 @@ function App() {
                 <input type="text" name="ssn" disabled value={formData.ssn} className="input-text" style={{backgroundColor: '#f1f1f1'}} />
               </div>
               <div className="form-group">
-                <label>Protocolo/UC (Para Reaproveitado)</label>
-                <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" />
+                <label>Protocolo/UC (Reaproveitado)</label>
+                <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" placeholder="Se foi instalado novamente"/>
               </div>
               <div className="form-group">
-                <label>Motivo da Devolução (Para Indisponível)</label>
-                <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" />
+                <label>Motivo da Devolução (Indisponível)</label>
+                <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" placeholder="Se foi descartado"/>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancelar" onClick={closeModals}>Cancelar</button>
