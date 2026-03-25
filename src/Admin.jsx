@@ -2,6 +2,33 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import editIcon from './assets/edit_square_icon.png';
 
+const listaColaboradores = [
+  "Allan Moreira Santana",
+  "Carlos Eduardo Lima Da Silva",
+  "Cristiano Silva Do Nascimento",
+  "Daniel De Oliveira Freitas",
+  "Diogenes Pereira De Oliveira",
+  "Divino Mendanha Borges",
+  "Elvis Henrique Pereira Da Silva",
+  "Fabricio Pereira Da Silva",
+  "Firmino Prado Uchoa",
+  "Helder Queiroz De Oliveira",
+  "Ivan Galdino Da Silva",
+  "Joao Paulo Vicente De Carvalho",
+  "Jose Marcos Pereira De Brito",
+  "Josenilio Barros Almeida",
+  "Leyvson Felipe De Aquino Guimaraes",
+  "Marcos Antonio Pereira Da Silva",
+  "Mauro Sergio Ferreira Cardoso",
+  "Murilo Andriel Alves Cota",
+  "Pedro Ermirio De Faria",
+  "Rafael Vieira Dos Santos",
+  "Ricardo Francisco Marques",
+  "Roberto Parreira Carvalho",
+  "Romildo dos Santos Da Conceicao",
+  "Werles Borges"
+];
+
 function Admin() {
   const [allChips, setAllChips] = useState([]);
   const [file, setFile] = useState(null);
@@ -9,7 +36,7 @@ function Admin() {
   const [erro, setErro] = useState('');
   
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ ssn_original: '', ssn: '', operadora: 'VIVO', uc: '', motivo: '' });
+  const [formData, setFormData] = useState({ ssn_original: '', ssn: '', operadora: 'VIVO', uc: '', motivo: '', colaborador: '' });
 
   const loadData = () => {
     fetch('http://localhost:5000/api/todos?limite=5000') 
@@ -48,7 +75,7 @@ function Admin() {
       
       setMensagem(data.mensagem);
       setFile(null);
-      document.getElementById('csvInput').value = ''; // Limpa o input
+      document.getElementById('csvInput').value = ''; 
       loadData();
     } catch (err) {
       setErro(err.message);
@@ -56,14 +83,14 @@ function Admin() {
     }
   };
 
-  // --- FUNÇÕES DE EDIÇÃO SEM BLOQUEIO ---
   const abrirModalEdicao = (chip) => {
     setFormData({
-      ssn_original: chip.SSN, // Salva quem era o SSN antes de editar
+      ssn_original: chip.SSN, 
       ssn: chip.SSN,
       operadora: chip.OPERADORA || 'VIVO',
       uc: chip.UC || '',
-      motivo: chip.MOTIVO_DEVOLUCAO || ''
+      motivo: chip.MOTIVO_DEVOLUCAO || '',
+      colaborador: chip.COLABORADOR || '' 
     });
     setIsUpdateModalOpen(true);
   };
@@ -79,7 +106,14 @@ function Admin() {
       const response = await fetch('http://localhost:5000/api/admin/atualizar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ssn_original: formData.ssn_original,
+          ssn: formData.ssn,
+          operadora: formData.operadora,
+          uc: formData.uc,
+          motivo_devolucao: formData.motivo, 
+          colaborador: formData.colaborador
+        })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.erro);
@@ -128,6 +162,7 @@ function Admin() {
                     <th>SSN</th>
                     <th>Operadora</th>
                     <th>Status</th>
+                    <th>Colaborador</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -137,6 +172,7 @@ function Admin() {
                       <td>{chip.SSN}</td>
                       <td>{chip.OPERADORA}</td>
                       <td>{chip.status}</td>
+                      <td>{chip.COLABORADOR}</td>
                       <td>
                         <button className="btn-editar" onClick={() => abrirModalEdicao(chip)} style={{padding: '5px 10px', fontSize: '0.8rem'}}>
                           <img src={editIcon} alt="Editar" className="icon-editar" style={{width: '14px', height: '14px'}}/>
@@ -158,7 +194,6 @@ function Admin() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3 style={{color: '#0a3d54'}}>Atualizar Dados</h3>
-            <p className="alerta-texto">Atenção: Você tem permissão para alterar qualquer dado deste chip.</p>
             <form onSubmit={handleUpdateAdmin}>
               <div className="form-group">
                 <label>SSN do Chip</label>
@@ -174,12 +209,21 @@ function Admin() {
                 </select>
               </div>
               <div className="form-group">
-                <label>Protocolo/UC (Reaproveitado)</label>
+                <label>Protocolo/UC/SS (Reaproveitado)</label>
                 <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" />
               </div>
               <div className="form-group">
                 <label>Motivo da Devolução (Indisponível)</label>
                 <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" />
+              </div>
+              <div className="form-group">
+                <label>Colaborador Responsável</label>
+                <select name="colaborador" value={formData.colaborador} onChange={handleInputChange} className="input-text">
+                  <option value="">(Nenhum)</option>
+                  {listaColaboradores.map((nome, idx) => (
+                    <option key={idx} value={nome}>{nome}</option>
+                  ))}
+                </select>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancelar" onClick={() => setIsUpdateModalOpen(false)}>Cancelar</button>

@@ -2,6 +2,33 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import editIcon from './assets/edit_square_icon.png';
 
+const listaColaboradores = [
+  "Allan Moreira Santana",
+  "Carlos Eduardo Lima Da Silva",
+  "Cristiano Silva Do Nascimento",
+  "Daniel De Oliveira Freitas",
+  "Diogenes Pereira De Oliveira",
+  "Divino Mendanha Borges",
+  "Elvis Henrique Pereira Da Silva",
+  "Fabricio Pereira Da Silva",
+  "Firmino Prado Uchoa",
+  "Helder Queiroz De Oliveira",
+  "Ivan Galdino Da Silva",
+  "Joao Paulo Vicente De Carvalho",
+  "Jose Marcos Pereira De Brito",
+  "Josenilio Barros Almeida",
+  "Leyvson Felipe De Aquino Guimaraes",
+  "Marcos Antonio Pereira Da Silva",
+  "Mauro Sergio Ferreira Cardoso",
+  "Murilo Andriel Alves Cota",
+  "Pedro Ermirio De Faria",
+  "Rafael Vieira Dos Santos",
+  "Ricardo Francisco Marques",
+  "Roberto Parreira Carvalho",
+  "Romildo dos Santos Da Conceicao",
+  "Werles Borges"
+];
+
 function App() {
   const [counters, setCounters] = useState({ vivo: 0, claro: 0, tim: 0, algar: 0, indisponiveis: 0, reaproveitados: 0 });
   const [allChips, setAllChips] = useState([]); 
@@ -14,7 +41,7 @@ function App() {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ ssn: '', operadora: 'VIVO', uc: '', motivo: '' });
+  const [formData, setFormData] = useState({ ssn: '', operadora: 'VIVO', uc: '', motivo: '', colaborador: '' });
 
   const loadData = () => {
     fetch('http://localhost:5000/api/contagem')
@@ -71,7 +98,7 @@ function App() {
   const closeModals = () => {
     setIsAddModalOpen(false);
     setIsUpdateModalOpen(false);
-    setFormData({ ssn: '', operadora: 'VIVO', uc: '', motivo: '' });
+    setFormData({ ssn: '', operadora: 'VIVO', uc: '', motivo: '', colaborador: '' });
   };
 
   const handleAddChip = async (e) => {
@@ -84,7 +111,8 @@ function App() {
           ssn: formData.ssn,
           operadora: formData.operadora,
           uc: formData.uc,
-          motivo_devolucao: formData.motivo
+          motivo_devolucao: formData.motivo,
+          colaborador: formData.colaborador 
         })
       });
       const data = await response.json();
@@ -108,7 +136,8 @@ function App() {
         body: JSON.stringify({
           ssn: formData.ssn,
           uc: formData.uc,
-          motivo_devolucao: formData.motivo
+          motivo_devolucao: formData.motivo,
+          colaborador: formData.colaborador 
         })
       });
       const data = await response.json();
@@ -123,13 +152,17 @@ function App() {
     }
   };
 
-  // Botão de Editar do Card
   const abrirModalEdicao = () => {
-    setFormData(prev => ({ ...prev, ssn: searchResult.ssn }));
+    setFormData(prev => ({ 
+      ...prev, 
+      ssn: searchResult.ssn,
+      uc: searchResult.uc || '',
+      motivo: searchResult.motivo_devolucao || '',
+      colaborador: searchResult.colaborador || ''
+    }));
     setIsUpdateModalOpen(true);
   };
 
-  // Filtro da Tabela
   const filteredChips = allChips.filter((chip) => {
     if (statusFilter === 'todos') return true;
     if (statusFilter === 'disponivel') return chip.status === 'Disponível';
@@ -190,12 +223,16 @@ function App() {
                 </div>
 
                 <div className="detail-item">
-                  <label>Protocolo/UC:</label>
+                  <label>Protocolo/UC/SS:</label>
                   <span>{searchResult.uc || 'Nenhum'}</span>
                 </div>
                 <div className="detail-item">
                   <label>Motivo Devolução:</label>
                   <span>{searchResult.motivo_devolucao || 'Nenhum'}</span>
+                </div>
+                <div className="detail-item">
+                  <label>Colaborador:</label>
+                  <span>{searchResult.colaborador || 'Nenhum'}</span>
                 </div>
                 <div className="detail-item">
                   <label>Status:</label>
@@ -303,7 +340,7 @@ function App() {
         </div>
       </div>
 
-      {/* Modal: CADASTRAR CHIP */}
+      {/* CADASTRAR CHIP */}
       {isAddModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -326,12 +363,22 @@ function App() {
                 Preencha uma das opções abaixo caso o chip já não esteja disponível:
               </p>
               <div className="form-group">
-                <label>Protocolo/UC (Reaproveitado)</label>
+                <label>Protocolo/UC/SS (Reaproveitado)</label>
                 <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" placeholder="Se foi instalado novamente" />
               </div>
               <div className="form-group">
                 <label>Motivo da Devolução (Indisponível)</label>
                 <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" placeholder="Se foi descartado" />
+              </div>
+              {/* ADICIONADO: Campo Colaborador */}
+              <div className="form-group">
+                <label>Colaborador Responsável</label>
+                <select name="colaborador" value={formData.colaborador} onChange={handleInputChange} className="input-text">
+                  <option value="">Selecione o seu nome...</option>
+                  {listaColaboradores.map((nome, idx) => (
+                    <option key={idx} value={nome}>{nome}</option>
+                  ))}
+                </select>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancelar" onClick={closeModals}>Cancelar</button>
@@ -342,24 +389,33 @@ function App() {
         </div>
       )}
 
-      {/* Modal: ATUALIZAR STATUS DO CHIP */}
+      {/*ATUALIZAR STATUS DO CHIP */}
       {isUpdateModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Informar Indisponibilidade (Atualizar)</h3>
-            <p className="alerta-texto">O chip será bloqueado para novas alterações após salvar.</p>
+            <h3>Atualizar Informações</h3>
+            <p className="alerta-texto">O chip será bloqueado para novas alterações caso seja reaproveitado ou esteja indisponível.</p>
             <form onSubmit={handleUpdateChip}>
               <div className="form-group">
                 <label>SSN do Chip</label>
                 <input type="text" name="ssn" disabled value={formData.ssn} className="input-text" style={{backgroundColor: '#f1f1f1'}} />
               </div>
               <div className="form-group">
-                <label>Protocolo/UC (Reaproveitado)</label>
+                <label>Protocolo/UC/SS (Reaproveitado)</label>
                 <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" placeholder="Se foi instalado novamente"/>
               </div>
               <div className="form-group">
                 <label>Motivo da Devolução (Indisponível)</label>
                 <input type="text" name="motivo" value={formData.motivo} onChange={handleInputChange} className="input-text" placeholder="Se foi descartado"/>
+              </div>
+              <div className="form-group">
+                <label>Colaborador Responsável</label>
+                <select name="colaborador" value={formData.colaborador} onChange={handleInputChange} className="input-text">
+                  <option value="">Selecione seu nome</option>
+                  {listaColaboradores.map((nome, idx) => (
+                    <option key={idx} value={nome}>{nome}</option>
+                  ))}
+                </select>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancelar" onClick={closeModals}>Cancelar</button>

@@ -16,7 +16,7 @@ load_error = None
 def carregar_dados():
     global df, load_error
     try:
-        cols = ['SSN', 'OPERADORA', 'UC', 'MOTIVO_DEVOLUCAO']
+        cols = ['SSN', 'OPERADORA', 'UC', 'MOTIVO_DEVOLUCAO', 'COLABORADOR']
         df_temp = pd.read_csv(file_path, sep=';', dtype=str, low_memory=False)
         
         for col in cols:
@@ -64,8 +64,9 @@ def buscar():
         "operadora": linha['OPERADORA'],
         "uc": uc,
         "motivo_devolucao": motivo,
+        "colaborador": linha.get('COLABORADOR', ''), 
         "status": obter_status(uc, motivo),
-        "bloqueado": True if uc != '' or motivo != '' else False # Se tiver UC ou motivo preenchido, a edição é bloqueada
+        "bloqueado": True if uc != '' or motivo != '' else False 
     }), 200
 
 # ==========================================
@@ -98,8 +99,7 @@ def obter_contadores():
 def listar_todos():
     if df is None: return jsonify({"erro": f"Erro interno: {load_error}"}), 500
 
-    df_view = df[['SSN', 'OPERADORA', 'UC', 'MOTIVO_DEVOLUCAO']].copy()
-
+    df_view = df[['SSN', 'OPERADORA', 'UC', 'MOTIVO_DEVOLUCAO', 'COLABORADOR']].copy()
     df_view['status'] = df_view.apply(lambda row: obter_status(row['UC'], row['MOTIVO_DEVOLUCAO']), axis=1)
     
     limite = request.args.get('limite', default=100, type=int)
@@ -118,20 +118,28 @@ def atualizar():
     ssn = dados.get('ssn', '').strip()
     uc = dados.get('uc', '').strip()
     motivo = dados.get('motivo_devolucao', '').strip()
+    colaborador = dados.get('colaborador', '').strip()
 
     if not ssn: return jsonify({"erro": "SSN é obrigatório"}), 400
+
+    # Se preencheu UC, o chip foi instalado, então não está mais com o colaborador
+    if uc != '':
+        colaborador = ''
+
+    if motivo != '' and colaborador == '':
+        return jsonify({"erro": "Para colocar o chip como Indisponível (Motivo preenchido), selecione seu nome no campo Colaborador."}), 400
 
     indices = df.index[df['SSN'] == ssn].tolist()
     if not indices: return jsonify({"erro": "SSN não encontrado"}), 404
     
     idx = indices[0]
     
-    # Verifica a regra de bloqueio: se já tem UC ou motivo, a alteração não é permitida
     if df.at[idx, 'UC'] != '' or df.at[idx, 'MOTIVO_DEVOLUCAO'] != '':
         return jsonify({"erro": "Este chip já foi alterado anteriormente e está BLOQUEADO."}), 403
 
     df.at[idx, 'UC'] = uc
     df.at[idx, 'MOTIVO_DEVOLUCAO'] = motivo
+    df.at[idx, 'COLABORADOR'] = colaborador 
     salvar_csv()
 
     return jsonify({"mensagem": "Status do chip atualizado com sucesso!"}), 200
@@ -149,16 +157,26 @@ def adicionar():
     operadora = dados.get('operadora', '').strip().upper()
     uc = dados.get('uc', '').strip()
     motivo = dados.get('motivo_devolucao', '').strip()
+    colaborador = dados.get('colaborador', '').strip()
 
     if not ssn or not operadora:
         return jsonify({"erro": "SSN e Operadora são obrigatórios."}), 400
+
+    # Se preencheu UC, o chip foi instalado, então não está mais com o colaborador
+    if uc != '':
+        colaborador = ''
+
+    if motivo != '' and colaborador == '':
+        return jsonify({"erro": "Para colocar o chip como Indisponível (Motivo preenchido), selecione seu nome."}), 400
+    if uc == '' and motivo == '' and colaborador == '':
+        return jsonify({"erro": "Para cadastrar um novo chip Disponível, selecione seu nome para sabermos com quem ele está."}), 400
 
     if (df['SSN'] == ssn).any():
         return jsonify({"erro": f"O chip com SSN {ssn} já está cadastrado no sistema!"}), 409
 
     nova_linha = pd.DataFrame([{
         'SSN': ssn, 'OPERADORA': operadora, 
-        'UC': uc, 'MOTIVO_DEVOLUCAO': motivo
+        'UC': uc, 'MOTIVO_DEVOLUCAO': motivo, 'COLABORADOR': colaborador
     }])
     
     df = pd.concat([df, nova_linha], ignore_index=True)
@@ -183,8 +201,13 @@ def admin_atualizar():
     operadora = dados.get('operadora', '').strip().upper()
     uc = dados.get('uc', '').strip()
     motivo = dados.get('motivo_devolucao', '').strip()
+    colaborador = dados.get('colaborador', '').strip()
 
     if not ssn_original: return jsonify({"erro": "SSN original é obrigatório"}), 400
+
+    # Se preencheu UC, o chip foi instalado, então não está mais com o colaborador
+    if uc != '':
+        colaborador = ''
 
     indices = df.index[df['SSN'] == ssn_original].tolist()
     if not indices: return jsonify({"erro": "SSN não encontrado"}), 404
@@ -195,6 +218,7 @@ def admin_atualizar():
     if operadora: df.at[idx, 'OPERADORA'] = operadora
     df.at[idx, 'UC'] = uc
     df.at[idx, 'MOTIVO_DEVOLUCAO'] = motivo
+    df.at[idx, 'COLABORADOR'] = colaborador 
     
     salvar_csv()
     return jsonify({"mensagem": "Informações atualizadas com sucesso!"}), 200
@@ -216,17 +240,13 @@ def admin_upload_csv():
         return jsonify({"erro": "O arquivo deve ser um CSV"}), 400
 
     try:
-        # usa 'utf-8-sig' para ignorar o caractere invisível (BOM) do Excel/Bloco de Notas
         conteudo_arquivo = file.stream.read().decode("utf-8-sig")
         stream = io.StringIO(conteudo_arquivo, newline=None)
         
         df_novo = pd.read_csv(stream, sep=';', dtype=str)
-
         df_novo.columns = df_novo.columns.str.strip()
-        
         df_novo.fillna('', inplace=True)
         
-        # Valida se as colunas obrigatórias existem no CSV enviado
         colunas_esperadas = ['SSN', 'OPERADORA', 'UC', 'MOTIVO_DEVOLUCAO']
         for col in colunas_esperadas:
             if col not in df_novo.columns:
@@ -235,9 +255,15 @@ def admin_upload_csv():
         df_novo['SSN'] = df_novo['SSN'].str.strip()
         df_novo['OPERADORA'] = df_novo['OPERADORA'].str.upper()
         
-        # Filtra apenas os SSNs que ainda NÃO existem no banco de dados para evitar duplicação
+        if 'COLABORADOR' not in df_novo.columns:
+            df_novo['COLABORADOR'] = ''
+
+        df_novo.loc[df_novo['UC'] != '', 'COLABORADOR'] = ''
+
+        colunas_inserir = colunas_esperadas + ['COLABORADOR']
+        
         ssns_existentes = df['SSN'].values
-        df_inserir = df_novo[~df_novo['SSN'].isin(ssns_existentes)][colunas_esperadas]
+        df_inserir = df_novo[~df_novo['SSN'].isin(ssns_existentes)][colunas_inserir]
         
         qtd_inserida = len(df_inserir)
         qtd_ignorada = len(df_novo) - qtd_inserida
