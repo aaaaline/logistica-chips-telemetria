@@ -39,7 +39,7 @@ function Admin() {
   const [formData, setFormData] = useState({ ssn_original: '', ssn: '', operadora: 'VIVO', uc: '', motivo: '', colaborador: '' });
 
   const loadData = () => {
-    fetch('http://localhost:5000/api/todos?limite=5000') 
+    fetch('https://logistica-chips-telemetria.onrender.com/api/todos?limite=5000') 
       .then(res => res.json())
       .then(data => setAllChips(data))
       .catch(err => console.error("Erro ao buscar lista de chips:", err));
@@ -65,7 +65,7 @@ function Admin() {
     formDataCSV.append('file', file);
 
     try {
-      const response = await fetch('http://localhost:5000/api/admin/upload_csv', {
+      const response = await fetch('https://logistica-chips-telemetria.onrender.com/api/admin/upload_csv', {
         method: 'POST',
         body: formDataCSV
       });
@@ -103,7 +103,7 @@ function Admin() {
   const handleUpdateAdmin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/admin/atualizar', {
+      const response = await fetch('https://logistica-chips-telemetria.onrender.com/api/admin/atualizar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

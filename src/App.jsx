@@ -44,12 +44,12 @@ function App() {
   const [formData, setFormData] = useState({ ssn: '', operadora: 'VIVO', uc: '', motivo: '', colaborador: '' });
 
   const loadData = () => {
-    fetch('http://localhost:5000/api/contagem')
+    fetch('https://logistica-chips-telemetria.onrender.com/api/contagem')
       .then(res => res.json())
       .then(data => setCounters(data))
       .catch(err => console.error("Erro ao buscar contagens:", err));
 
-    fetch('http://localhost:5000/api/todos?limite=100') 
+    fetch('https://logistica-chips-telemetria.onrender.com/api/todos?limite=100') 
       .then(res => res.json())
       .then(data => setAllChips(data))
       .catch(err => console.error("Erro ao buscar lista de chips:", err));
@@ -70,7 +70,7 @@ function App() {
     setSearchResult(null);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/busca?ssn=${ssnInput.trim()}`);
+      const response = await fetch(`https://logistica-chips-telemetria.onrender.com/api/busca?ssn=${ssnInput.trim()}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -104,7 +104,7 @@ function App() {
   const handleAddChip = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/adicionar', {
+      const response = await fetch('https://logistica-chips-telemetria.onrender.com/api/adicionar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -130,7 +130,7 @@ function App() {
   const handleUpdateChip = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/atualizar', {
+      const response = await fetch('https://logistica-chips-telemetria.onrender.com/api/atualizar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
