@@ -7,7 +7,7 @@ const currentPath = window.location.pathname;
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {/* Se o usu·rio digitar /administrator, renderiza a p·gina de Admin. Sen„o, renderiza o App normal */}
+    {/* Se o usu√°rio digitar /administrator, renderiza a p√°gina de Admin. Sen√£o, renderiza o App normal */}
     {currentPath === '/administrator' ? <Admin /> : <App />}
   </StrictMode>,
 )
