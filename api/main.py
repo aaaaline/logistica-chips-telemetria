@@ -65,22 +65,31 @@ def buscar():
 # ==========================================
 @app.route('/api/contagem', methods=['GET'])
 def obter_contadores():
-    vivo = supabase.table('bd_chips').select('*', count='exact').eq('operadora', 'VIVO').eq('uc', '').eq('motivo_devolucao', '').execute()
-    claro = supabase.table('bd_chips').select('*', count='exact').eq('operadora', 'CLARO').eq('uc', '').eq('motivo_devolucao', '').execute()
-    tim = supabase.table('bd_chips').select('*', count='exact').eq('operadora', 'TIM').eq('uc', '').eq('motivo_devolucao', '').execute()
-    algar = supabase.table('bd_chips').select('*', count='exact').eq('operadora', 'ALGAR').eq('uc', '').eq('motivo_devolucao', '').execute()
-    
-    reaproveitados = supabase.table('bd_chips').select('*', count='exact').neq('uc', '').execute()
-    indisponiveis = supabase.table('bd_chips').select('*', count='exact').eq('uc', '').neq('motivo_devolucao', '').execute()
-    
-    return jsonify({
-        "vivo": vivo.count,
-        "claro": claro.count,
-        "tim": tim.count,
-        "algar": algar.count,
-        "indisponiveis": indisponiveis.count,
-        "reaproveitados": reaproveitados.count
-    }), 200
+    try:
+        f_uc = 'uc.is.null,uc.eq.'
+        f_motivo = 'motivo_devolucao.is.null,motivo_devolucao.eq.'
+        
+        vivo = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'VIVO').or_(f_uc).or_(f_motivo).execute()
+        claro = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'CLARO').or_(f_uc).or_(f_motivo).execute()
+        tim = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'TIM').or_(f_uc).or_(f_motivo).execute()
+        algar = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'ALGAR').or_(f_uc).or_(f_motivo).execute()
+
+        reaproveitados = supabase.table('bd_chips').select('ssn', count='exact').neq('uc', '').execute()
+
+        indisponiveis = supabase.table('bd_chips').select('ssn', count='exact').or_(f_uc).neq('motivo_devolucao', '').execute()
+        
+        return jsonify({
+            "vivo": vivo.count or 0,
+            "claro": claro.count or 0,
+            "tim": tim.count or 0,
+            "algar": algar.count or 0,
+            "indisponiveis": indisponiveis.count or 0,
+            "reaproveitados": reaproveitados.count or 0
+        }), 200
+
+    except Exception as e:
+        print(f"Erro ao buscar contagens: {e}")
+        return jsonify({"erro": "Falha interna ao contar chips"}), 500
 
 # ==========================================
 # ROTA 3: Listar todos (Com Limite)
