@@ -83,6 +83,32 @@ function Admin() {
     }
   };
 
+  const handleDownloadCSV = async () => {
+    try {
+      setMensagem('Gerando arquivo para download...');
+      setErro('');
+      
+      const response = await fetch('https://logistica-chips-telemetria.onrender.com/api/admin/download_csv');
+      
+      if (!response.ok) throw new Error('Falha ao baixar o arquivo.');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Nome + data atual (ex: relatorio_chips_telemetria_2026-03-25.csv)
+      a.download = `relatorio_chips_telemetria${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      
+      setMensagem('Download concluído com sucesso!');
+    } catch (err) {
+      setErro(err.message);
+      setMensagem('');
+    }
+  };
+
   const abrirModalEdicao = (chip) => {
     setFormData({
       ssn_original: chip.SSN, 
@@ -152,8 +178,15 @@ function Admin() {
           </div>
 
           <div className="card table-card">
-            <div className="table-header-flex">
+            <div className="table-header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3>Chips Cadastrados</h3>
+              <button 
+                className="btn-salvar" 
+                onClick={handleDownloadCSV} 
+                style={{ backgroundColor: '#2ecc71', fontSize: '0.9rem', padding: '8px 15px', display: 'flex', gap: '8px', alignItems: 'center' }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>📥</span> Baixar CSV
+              </button>
             </div>
             <div className="table-responsive">
               <table>

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 from supabase import create_client, Client
 import pandas as pd
@@ -279,6 +279,42 @@ def admin_upload_csv():
 
     except Exception as e:
         return jsonify({"erro": f"Erro ao processar arquivo: {str(e)}"}), 500
+
+@app.route('/api/admin/download_csv', methods=['GET'])
+def admin_download_csv():
+    try:
+        # Busca até 10.000 chips no banco
+        res = supabase.table('bd_chips').select('*').limit(10000).execute()
+        
+        df_export = pd.DataFrame(res.data)
+        
+        if not df_export.empty:
+            df_export = df_export.rename(columns={
+                'ssn': 'SSN',
+                'operadora': 'OPERADORA',
+                'uc': 'UC',
+                'motivo_devolucao': 'MOTIVO_DEVOLUCAO',
+                'colaborador': 'COLABORADOR',
+                'data_adicionado': 'DATA_ADICIONADO',
+                'data_ultima_alteracao': 'DATA_ULTIMA_ALTERACAO'
+            })
+            
+            colunas_ordem = ['SSN', 'OPERADORA', 'UC', 'MOTIVO_DEVOLUCAO', 'COLABORADOR', 'DATA_ADICIONADO', 'DATA_ULTIMA_ALTERACAO']
+            colunas_existentes = [col for col in colunas_ordem if col in df_export.columns]
+            df_export = df_export[colunas_existentes]
+        
+        output = io.StringIO()
+        df_export.to_csv(output, sep=';', index=False)
+        csv_data = output.getvalue()
+        
+        return Response(
+            csv_data.encode('utf-8-sig'),
+            mimetype="text/csv",
+            headers={"Content-disposition": "attachment; filename=relatorio_chips.csv"}
+        )
+    except Exception as e:
+        print(f"Erro ao gerar CSV: {e}")
+        return jsonify({"erro": "Falha ao gerar o arquivo CSV"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
