@@ -39,7 +39,7 @@ def buscar():
         
     ssn_query = ssn_query.strip()
     
-    res = supabase.table('chips').select('*').ilike('ssn', f"%{ssn_query}%").execute()
+    res = supabase.table('bd_chips').select('*').ilike('ssn', f"%{ssn_query}%").execute()
     
     if not res.data:
         return jsonify({"erro": "SSN não encontrado"}), 404
@@ -65,13 +65,13 @@ def buscar():
 # ==========================================
 @app.route('/api/contagem', methods=['GET'])
 def obter_contadores():
-    vivo = supabase.table('chips').select('*', count='exact').eq('operadora', 'VIVO').eq('uc', '').eq('motivo_devolucao', '').execute()
-    claro = supabase.table('chips').select('*', count='exact').eq('operadora', 'CLARO').eq('uc', '').eq('motivo_devolucao', '').execute()
-    tim = supabase.table('chips').select('*', count='exact').eq('operadora', 'TIM').eq('uc', '').eq('motivo_devolucao', '').execute()
-    algar = supabase.table('chips').select('*', count='exact').eq('operadora', 'ALGAR').eq('uc', '').eq('motivo_devolucao', '').execute()
+    vivo = supabase.table('bd_chips').select('*', count='exact').eq('operadora', 'VIVO').eq('uc', '').eq('motivo_devolucao', '').execute()
+    claro = supabase.table('bd_chips').select('*', count='exact').eq('operadora', 'CLARO').eq('uc', '').eq('motivo_devolucao', '').execute()
+    tim = supabase.table('bd_chips').select('*', count='exact').eq('operadora', 'TIM').eq('uc', '').eq('motivo_devolucao', '').execute()
+    algar = supabase.table('bd_chips').select('*', count='exact').eq('operadora', 'ALGAR').eq('uc', '').eq('motivo_devolucao', '').execute()
     
-    reaproveitados = supabase.table('chips').select('*', count='exact').neq('uc', '').execute()
-    indisponiveis = supabase.table('chips').select('*', count='exact').eq('uc', '').neq('motivo_devolucao', '').execute()
+    reaproveitados = supabase.table('bd_chips').select('*', count='exact').neq('uc', '').execute()
+    indisponiveis = supabase.table('bd_chips').select('*', count='exact').eq('uc', '').neq('motivo_devolucao', '').execute()
     
     return jsonify({
         "vivo": vivo.count,
@@ -89,7 +89,7 @@ def obter_contadores():
 def listar_todos():
     limite = request.args.get('limite', default=100, type=int)
     
-    res = supabase.table('chips').select('*').limit(limite).execute()
+    res = supabase.table('bd_chips').select('*').limit(limite).execute()
     registros = res.data
     
     for req in registros:
@@ -119,7 +119,7 @@ def atualizar():
     if motivo != '' and colaborador == '':
         return jsonify({"erro": "Para colocar o chip como Indisponível (Motivo preenchido), selecione seu nome no campo Colaborador."}), 400
 
-    res = supabase.table('chips').select('*').eq('ssn', ssn).execute()
+    res = supabase.table('bd_chips').select('*').eq('ssn', ssn).execute()
     if not res.data: return jsonify({"erro": "SSN não encontrado"}), 404
     
     chip_atual = res.data[0]
@@ -128,7 +128,7 @@ def atualizar():
         return jsonify({"erro": "Este chip já foi alterado anteriormente e está BLOQUEADO."}), 403
 
     # ADICIONADO: Atualiza o campo data_ultima_alteracao
-    supabase.table('chips').update({
+    supabase.table('bd_chips').update({
         'uc': uc,
         'motivo_devolucao': motivo,
         'colaborador': colaborador,
@@ -159,13 +159,13 @@ def adicionar():
     if uc == '' and motivo == '' and colaborador == '':
         return jsonify({"erro": "Para cadastrar um novo chip Disponível, selecione seu nome."}), 400
 
-    res = supabase.table('chips').select('ssn').eq('ssn', ssn).execute()
+    res = supabase.table('bd_chips').select('ssn').eq('ssn', ssn).execute()
     if res.data:
         return jsonify({"erro": f"O chip com SSN {ssn} já está cadastrado no sistema!"}), 409
 
     agora = obter_data_hora_atual()
 
-    supabase.table('chips').insert({
+    supabase.table('bd_chips').insert({
         'ssn': ssn,
         'operadora': operadora,
         'uc': uc,
@@ -197,7 +197,7 @@ def admin_atualizar():
         colaborador = ''
 
     try:
-        supabase.table('chips').update({
+        supabase.table('bd_chips').update({
             'ssn': novo_ssn if novo_ssn else ssn_original,
             'operadora': operadora,
             'uc': uc,
@@ -245,7 +245,7 @@ def admin_upload_csv():
         
         for i in range(0, len(ssns_no_csv), 200):
             chunk = ssns_no_csv[i:i+200]
-            res = supabase.table('chips').select('ssn').in_('ssn', chunk).execute()
+            res = supabase.table('bd_chips').select('ssn').in_('ssn', chunk).execute()
             for row in res.data:
                 ssns_existentes.add(row['ssn'])
         df_inserir = df_novo[~df_novo['ssn'].isin(ssns_existentes)][colunas_esperadas + ['colaborador']].copy()
@@ -262,7 +262,7 @@ def admin_upload_csv():
             return jsonify({"mensagem": f"Nenhum chip novo inserido. Todos os {qtd_ignorada} chips já existiam no sistema."}), 200
 
         for i in range(0, len(records), 1000):
-            supabase.table('chips').insert(records[i:i+1000]).execute()
+            supabase.table('bd_chips').insert(records[i:i+1000]).execute()
         
         return jsonify({
             "mensagem": f"Operação realizada com sucesso! {qtd_inserida} chips adicionados ({qtd_ignorada} já existem na base de dados)."
