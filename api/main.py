@@ -236,7 +236,7 @@ def admin_upload_csv():
         df_novo.columns = df_novo.columns.str.strip().str.lower()
         df_novo.fillna('', inplace=True)
         
-        colunas_esperadas = ['ssn', 'operadora', 'uc', 'motivo_devolucao']
+        colunas_esperadas = ['ssn', 'operadora']
         for col in colunas_esperadas:
             if col not in df_novo.columns:
                 return jsonify({"erro": f"O CSV enviado está sem a coluna obrigatória: {col.upper()}"}), 400
