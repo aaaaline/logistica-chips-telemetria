@@ -122,9 +122,6 @@ def atualizar():
 
     if not ssn: return jsonify({"erro": "SSN é obrigatório"}), 400
 
-    if uc != '':
-        colaborador = ''
-
     if motivo != '' and colaborador == '':
         return jsonify({"erro": "Para colocar o chip como Indisponível (Motivo preenchido), selecione seu nome no campo Colaborador."}), 400
 
@@ -136,7 +133,6 @@ def atualizar():
     if chip_atual.get('uc') != '' or chip_atual.get('motivo_devolucao') != '':
         return jsonify({"erro": "Este chip já foi alterado anteriormente e está BLOQUEADO."}), 403
 
-    # ADICIONADO: Atualiza o campo data_ultima_alteracao
     supabase.table('bd_chips').update({
         'uc': uc,
         'motivo_devolucao': motivo,
@@ -159,9 +155,6 @@ def adicionar():
     colaborador = dados.get('colaborador', '').strip()
 
     if not ssn or not operadora: return jsonify({"erro": "SSN e Operadora são obrigatórios."}), 400
-
-    if uc != '':
-        colaborador = ''
 
     if motivo != '' and colaborador == '':
         return jsonify({"erro": "Para colocar o chip como Indisponível, selecione seu nome."}), 400
@@ -202,9 +195,6 @@ def admin_atualizar():
 
     if not ssn_original: return jsonify({"erro": "SSN original é obrigatório"}), 400
 
-    if uc != '':
-        colaborador = ''
-
     try:
         supabase.table('bd_chips').update({
             'ssn': novo_ssn if novo_ssn else ssn_original,
@@ -236,7 +226,7 @@ def admin_upload_csv():
         df_novo.columns = df_novo.columns.str.strip().str.lower()
         df_novo.fillna('', inplace=True)
         
-        colunas_esperadas = ['ssn', 'operadora']
+        colunas_esperadas = ['ssn', 'operadora', 'uc', 'motivo_devolucao']
         for col in colunas_esperadas:
             if col not in df_novo.columns:
                 return jsonify({"erro": f"O CSV enviado está sem a coluna obrigatória: {col.upper()}"}), 400
@@ -246,8 +236,6 @@ def admin_upload_csv():
         
         if 'colaborador' not in df_novo.columns:
             df_novo['colaborador'] = ''
-
-        df_novo.loc[df_novo['uc'] != '', 'colaborador'] = ''
 
         ssns_no_csv = df_novo['ssn'].tolist()
         ssns_existentes = set()
