@@ -17,6 +17,7 @@ const listaColaboradores = [
   "Joao Paulo Vicente De Carvalho",
   "Jose Marcos Pereira De Brito",
   "Josenilio Barros Almeida",
+  "Leo Moreira",
   "Leyvson Felipe De Aquino Guimaraes",
   "Marcos Antonio Pereira Da Silva",
   "Mauro Sergio Ferreira Cardoso",
@@ -30,7 +31,7 @@ const listaColaboradores = [
 ];
 
 function App() {
-  const [counters, setCounters] = useState({ vivo: 0, claro: 0, tim: 0, algar: 0, indisponiveis: 0, reaproveitados: 0 });
+  const [counters, setCounters] = useState({ vivo: 0, claro: 0, tim: 0, algar: 0, oi: 0, indisponiveis: 0, instalados: 0, em_maos: 0 });
   const [allChips, setAllChips] = useState([]); 
   const [searchResult, setSearchResult] = useState(null);
 
@@ -49,7 +50,7 @@ function App() {
       .then(data => setCounters(data))
       .catch(err => console.error("Erro ao buscar contagens:", err));
 
-    fetch('https://logistica-chips-telemetria.onrender.com/api/todos?limite=100') 
+    fetch('https://logistica-chips-telemetria.onrender.com/api/todos?limite=100')
       .then(res => res.json())
       .then(data => setAllChips(data))
       .catch(err => console.error("Erro ao buscar lista de chips:", err));
@@ -167,7 +168,8 @@ function App() {
     if (statusFilter === 'todos') return true;
     if (statusFilter === 'disponivel') return chip.status === 'Disponível';
     if (statusFilter === 'indisponivel') return chip.status === 'Indisponível';
-    if (statusFilter === 'reaproveitado') return chip.status === 'Reaproveitado';
+    if (statusFilter === 'instalado') return chip.status === 'Instalado';
+    if (statusFilter === 'em_maos') return chip.status === 'Em mãos'; 
     return true;
   });
 
@@ -236,7 +238,7 @@ function App() {
                 </div>
                 <div className="detail-item">
                   <label>Status:</label>
-                  <span className={`badge ${searchResult.status === 'Disponível' ? 'disponivel' : searchResult.status === 'Reaproveitado' ? 'reaproveitado' : 'indisponivel'}`}>
+                  <span className={`badge ${searchResult.status === 'Disponível' ? 'disponivel' : searchResult.status === 'Instalado' ? 'instalado' : searchResult.status === 'Em mãos' ? 'em-maos' : 'indisponivel'}`}>
                     {searchResult.status} {searchResult.bloqueado}
                   </span>
                 </div>
@@ -256,8 +258,9 @@ function App() {
               >
                 <option value="todos">Todos</option>
                 <option value="disponivel">Disponíveis</option>
+                <option value="em_maos">Em mãos</option>
                 <option value="indisponivel">Indisponíveis</option>
-                <option value="reaproveitado">Reaproveitados</option>
+                <option value="instalado">Instalados</option>
               </select>
             </div>
 
@@ -298,7 +301,7 @@ function App() {
           <div className="card counters-card">
             <h2>Disponíveis</h2>
             <p className="alerta-texto">
-              Chips sem UC e sem motivo de devolução.
+              Chips sem UC, sem motivo de devolução e sem colaborador.
             </p>
             
             <div className="counters-grid">
@@ -315,17 +318,29 @@ function App() {
                 <div className="counter-value">{counters.tim}</div>
               </div>
               <div className="counter-box">
+                <span className="counter-label">OI</span>
+                <div className="counter-value">{counters.oi}</div>
+              </div>
+              <div className="counter-box">
                 <span className="counter-label">Algar</span>
                 <div className="counter-value">{counters.algar}</div>
               </div>
             </div>
           </div>
 
+          <div className="card in-hand-card">
+            <h2>Em mãos</h2>
+            <div className="counter-box em_maos-box">
+              <span className="counter-label">Total Em mãos</span>
+              <div className="counter-value">{counters.em_maos || 0}</div>
+            </div>
+          </div>
+
           <div className="card reinstalled-card">
-            <h2>Reaproveitados</h2>
-            <div className="counter-box reaproveitados-box">
-              <span className="counter-label">Total Reaproveitados</span>
-              <div className="counter-value">{counters.reaproveitados || 0}</div>
+            <h2>Instalados</h2>
+            <div className="counter-box instalados-box">
+              <span className="counter-label">Total Instalados</span>
+              <div className="counter-value">{counters.instalados || 0}</div>
             </div>
           </div>
 
@@ -353,17 +368,18 @@ function App() {
               <div className="form-group">
                 <label>Operadora *</label>
                 <select name="operadora" value={formData.operadora} onChange={handleInputChange} className="input-text">
-                  <option value="VIVO">VIVO</option>
-                  <option value="CLARO">CLARO</option>
-                  <option value="TIM">TIM</option>
                   <option value="ALGAR">ALGAR</option>
+                  <option value="CLARO">CLARO</option>
+                  <option value="OI">OI</option>
+                  <option value="TIM">TIM</option>
+                  <option value="VIVO">VIVO</option>
                 </select>
               </div>
               <p className="alerta-texto" style={{marginBottom: "10px"}}>
                 Preencha uma das opções abaixo caso o chip já não esteja disponível:
               </p>
               <div className="form-group">
-                <label>Protocolo/UC/SS (Reaproveitado)</label>
+                <label>Protocolo/UC/SS (Instalado)</label>
                 <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" placeholder="Se foi instalado novamente" />
               </div>
               <div className="form-group">
@@ -394,14 +410,14 @@ function App() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Atualizar Informações</h3>
-            <p className="alerta-texto">O chip será bloqueado para novas alterações caso seja reaproveitado ou esteja indisponível.</p>
+            <p className="alerta-texto">O chip será bloqueado para novas alterações caso seja instalado ou esteja indisponível.</p>
             <form onSubmit={handleUpdateChip}>
               <div className="form-group">
                 <label>SSN do Chip</label>
                 <input type="text" name="ssn" disabled value={formData.ssn} className="input-text" style={{backgroundColor: '#f1f1f1'}} />
               </div>
               <div className="form-group">
-                <label>Protocolo/UC/SS (Reaproveitado)</label>
+                <label>Protocolo/UC/SS (Instalado)</label>
                 <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" placeholder="Se foi instalado novamente"/>
               </div>
               <div className="form-group">

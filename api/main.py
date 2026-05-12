@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 from supabase import create_client, Client
-import pandas as pd
 import os
 import io
 from datetime import datetime, timezone
@@ -21,14 +20,15 @@ else:
     print("SUPABASE_URL e SUPABASE_KEY não foram configuradas nas variáveis de ambiente.")
     supabase = None
 
-def obter_status(uc, motivo):
-    if uc and str(uc).strip() != '': return 'Reaproveitado'
+def obter_status(uc, motivo, colaborador):
+    if uc and str(uc).strip() != '': return 'Instalado'
     if motivo and str(motivo).strip() != '': return 'Indisponível'
+    if colaborador and str(colaborador).strip() != '': return 'Em mãos'
     return 'Disponível'
 
 def obter_data_hora_atual():
     return datetime.now(timezone.utc).isoformat()
-
+    
 # ==========================================
 # ROTA 1: Buscar SSN específico
 # ==========================================
@@ -56,7 +56,7 @@ def buscar():
         "colaborador": linha.get('colaborador') or '', 
         "data_adicionado": linha.get('data_adicionado') or '', 
         "data_ultima_alteracao": linha.get('data_ultima_alteracao') or '', 
-        "status": obter_status(uc, motivo),
+        "status": obter_status(uc, motivo, linha.get('colaborador')),
         "bloqueado": True if uc != '' or motivo != '' else False 
     }), 200
 
@@ -68,23 +68,33 @@ def obter_contadores():
     try:
         f_uc = 'uc.is.null,uc.eq.'
         f_motivo = 'motivo_devolucao.is.null,motivo_devolucao.eq.'
+        f_colaborador = 'colaborador.is.null,colaborador.eq.'
         
-        vivo = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'VIVO').or_(f_uc).or_(f_motivo).execute()
-        claro = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'CLARO').or_(f_uc).or_(f_motivo).execute()
-        tim = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'TIM').or_(f_uc).or_(f_motivo).execute()
-        algar = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'ALGAR').or_(f_uc).or_(f_motivo).execute()
+        # Disponíveis (Sem UC, Sem Motivo e Sem Colaborador)
+        vivo = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'VIVO').or_(f_uc).or_(f_motivo).or_(f_colaborador).execute()
+        claro = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'CLARO').or_(f_uc).or_(f_motivo).or_(f_colaborador).execute()
+        tim = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'TIM').or_(f_uc).or_(f_motivo).or_(f_colaborador).execute()
+        algar = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'ALGAR').or_(f_uc).or_(f_motivo).or_(f_colaborador).execute()
+        oi = supabase.table('bd_chips').select('ssn', count='exact').eq('operadora', 'OI').or_(f_uc).or_(f_motivo).or_(f_colaborador).execute()
 
-        reaproveitados = supabase.table('bd_chips').select('ssn', count='exact').neq('uc', '').execute()
+        # Instalados (Possuem UC)
+        instalados = supabase.table('bd_chips').select('ssn', count='exact').neq('uc', '').execute()
 
+        # Indisponíveis (Sem UC, Possuem Motivo)
         indisponiveis = supabase.table('bd_chips').select('ssn', count='exact').or_(f_uc).neq('motivo_devolucao', '').execute()
         
+        # Em Mãos (Sem UC, Sem Motivo, Possuem Colaborador)
+        em_maos = supabase.table('bd_chips').select('ssn', count='exact').or_(f_uc).or_(f_motivo).neq('colaborador', '').execute()
+
         return jsonify({
             "vivo": vivo.count or 0,
             "claro": claro.count or 0,
             "tim": tim.count or 0,
             "algar": algar.count or 0,
+            "oi": oi.count or 0,
             "indisponiveis": indisponiveis.count or 0,
-            "reaproveitados": reaproveitados.count or 0
+            "instalados": instalados.count or 0,
+            "em_maos": em_maos.count or 0 
         }), 200
 
     except Exception as e:
@@ -102,7 +112,7 @@ def listar_todos():
     registros = res.data
     
     for req in registros:
-        req['status'] = obter_status(req.get('uc', ''), req.get('motivo_devolucao', ''))
+        req['status'] = obter_status(req.get('uc', ''), req.get('motivo_devolucao', ''), req.get('colaborador', ''))
         req['SSN'] = req.pop('ssn', '')
         req['OPERADORA'] = req.pop('operadora', '')
         req['COLABORADOR'] = req.get('colaborador', '')
@@ -211,6 +221,8 @@ def admin_atualizar():
 
 @app.route('/api/admin/upload_csv', methods=['POST'])
 def admin_upload_csv():
+    import pandas as pd
+    
     if 'file' not in request.files:
         return jsonify({"erro": "Nenhum arquivo enviado"}), 400
     
@@ -270,6 +282,8 @@ def admin_upload_csv():
 
 @app.route('/api/admin/download_csv', methods=['GET'])
 def admin_download_csv():
+    import pandas as pd
+    
     try:
         # Busca até 10.000 chips no banco
         res = supabase.table('bd_chips').select('*').limit(10000).execute()
@@ -303,6 +317,14 @@ def admin_download_csv():
     except Exception as e:
         print(f"Erro ao gerar CSV: {e}")
         return jsonify({"erro": "Falha ao gerar o arquivo CSV"}), 500
+        
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    return jsonify({
+        "erro_fatal": str(e),
+        "traceback": traceback.format_exc()
+    }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

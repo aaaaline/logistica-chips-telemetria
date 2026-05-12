@@ -228,9 +228,14 @@ h3 {
   color: var(--vermelho-alerta);
 }
 
-.badge.reaproveitado {
+.badge.instalado {
   background-color: var(--amarelo-claro);
   color: var(--amarelo-alerta);
+}
+
+.badge.em-maos {
+  background-color: var(--azul-claro);
+  color: var(--azul-principal);
 }
 
 /* ================================
@@ -318,19 +323,24 @@ tbody tr:hover {
   gap: 15px;
 }
 
+/* Faz com que o último item */
+.counters-grid .counter-box:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 .counter-box {
-  background-color: var(--azul-claro);
+  background-color: #eef7f5;
   padding: 20px 15px;
   border-radius: 10px;
   text-align: center;
-  border: 1px solid var(--borda-suave);
+  border: 1px solid #cde0d5;
 }
 
 .counter-label {
   display: block;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--azul-escuro);
+  color: #2cb163;
   text-transform: uppercase;
   margin-bottom: 8px;
 }
@@ -338,7 +348,7 @@ tbody tr:hover {
 .counter-value {
   font-size: 2.2rem;
   font-weight: bold;
-  color: var(--azul-principal);
+  color: #2cb163;
 }
 
 .indisponiveis-box {
@@ -352,15 +362,26 @@ tbody tr:hover {
   color: var(--vermelho-alerta);
 }
 
-.reaproveitados-box {
+.instalados-box {
   background-color: var(--amarelo-claro);
   border: 1px solid #faf094;
   padding: 25px 15px; 
 }
 
-.reaproveitados-box .counter-label,
-.reaproveitados-box .counter-value {
+.instalados-box .counter-label,
+.instalados-box .counter-value {
   color: var(--amarelo-alerta);
+}
+
+.em_maos-box {
+  background-color: var(--azul-claro);
+  border: 1px solid var(--borda-suave);
+  padding: 25px 15px; 
+}
+
+.em_maos-box .counter-label,
+.em_maos-box .counter-value {
+  color: var(--azul-escuro);
 }
 
 /* ================================

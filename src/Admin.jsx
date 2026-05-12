@@ -17,6 +17,7 @@ const listaColaboradores = [
   "Joao Paulo Vicente De Carvalho",
   "Jose Marcos Pereira De Brito",
   "Josenilio Barros Almeida",
+  "Leo Moreira", 
   "Leyvson Felipe De Aquino Guimaraes",
   "Marcos Antonio Pereira Da Silva",
   "Mauro Sergio Ferreira Cardoso",
@@ -39,7 +40,7 @@ function Admin() {
   const [formData, setFormData] = useState({ ssn_original: '', ssn: '', operadora: 'VIVO', uc: '', motivo: '', colaborador: '' });
 
   const loadData = () => {
-    fetch('https://logistica-chips-telemetria.onrender.com/api/todos?limite=5000') 
+    fetch('https://logistica-chips-telemetria.onrender.com/api/todos?limite=5000')  
       .then(res => res.json())
       .then(data => setAllChips(data))
       .catch(err => console.error("Erro ao buscar lista de chips:", err));
@@ -88,7 +89,7 @@ function Admin() {
       setMensagem('Gerando arquivo para download...');
       setErro('');
       
-      const response = await fetch('https://logistica-chips-telemetria.onrender.com/api/admin/download_csv');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/download_csv`);
       
       if (!response.ok) throw new Error('Falha ao baixar o arquivo.');
       
@@ -185,7 +186,7 @@ function Admin() {
                 onClick={handleDownloadCSV} 
                 style={{ backgroundColor: '#2ecc71', fontSize: '0.9rem', padding: '8px 15px', display: 'flex', gap: '8px', alignItems: 'center' }}
               >
-                <span style={{ fontSize: '1.2rem' }}>📥</span> Baixar CSV
+                <span style={{ fontSize: '1.2rem' }}></span>Baixar CSV
               </button>
             </div>
             <div className="table-responsive">
@@ -235,14 +236,15 @@ function Admin() {
               <div className="form-group">
                 <label>Operadora</label>
                 <select name="operadora" value={formData.operadora} onChange={handleInputChange} className="input-text">
-                  <option value="VIVO">VIVO</option>
-                  <option value="CLARO">CLARO</option>
-                  <option value="TIM">TIM</option>
                   <option value="ALGAR">ALGAR</option>
+                  <option value="CLARO">CLARO</option>
+                  <option value="OI">OI</option>
+                  <option value="TIM">TIM</option>
+                  <option value="VIVO">VIVO</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>Protocolo/UC/SS (Reaproveitado)</label>
+                <label>Protocolo/UC/SS (Instalado)</label>
                 <input type="text" name="uc" value={formData.uc} onChange={handleInputChange} className="input-text" />
               </div>
               <div className="form-group">
